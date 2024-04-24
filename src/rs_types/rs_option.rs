@@ -1,9 +1,12 @@
-use pyo3::{prelude::*, types::PyBool};
+use pyo3::{
+    prelude::*,
+    types::PyBool
+};
 
 use super::rs_result::RsResult;
 
 #[pyclass(name="Option")]
-#[derive(Debug)]
+#[derive(Debug, FromPyObject)]
 pub struct RsOption {
     value: Option<PyObject>
 }
@@ -34,12 +37,6 @@ impl RsOption {
     pub const fn is_none(&self) -> bool {
         self.value.is_none()
     }
-
-    // fn as_slice(&self) -> PyResult<PyList> {
-    //     let a = Python::with_gil(|py| {
-    //         PyList::new_bound(py, self.value.as_slice())
-    //     }).extract::<PyList>();
-    // }
 
     pub fn expect(&self, msg: String) -> PyObject {
         match &self.value {
@@ -96,10 +93,49 @@ impl RsOption {
         }
     }
 
-    fn ok_or(&self, err: PyObject) -> RsResult {
+    pub fn ok_or(&self, err: PyObject) -> RsResult {
         match &self.value {
-            Some(v) => RsResult{value: Ok(v.clone())},
-            None => RsResult{ value: Err(err) },
+            Some(v) => RsResult::Ok { value: v.clone() },
+            None => RsResult::Err { value: err },
+        }
+    }
+
+    pub fn ok_or_else(&self, err: PyObject) -> RsResult {
+        match &self.value {
+            Some(v) => RsResult::Ok { value: v.clone() },
+            None => {
+                let e = Python::with_gil(|py| {
+                    err.call0(py).unwrap()
+                });
+                RsResult::Err { value: e }
+            },
+        }
+    }
+
+    pub fn and_then(&self, f: PyObject) -> RsOption {
+        match &self.value {
+            Some(x) => {RsOption::new(Some(Python::with_gil(
+                |py| f.call1(py, (x,)).unwrap()
+            )))},
+            None => RsOption::new(None),
+        }
+    }
+
+    pub fn or_else(&self, f: PyObject) -> RsOption {
+        match &self.value {
+            x @ Some(_) => RsOption::new(x.clone()),
+            None => {RsOption::new(Some(Python::with_gil(
+                |py| f.call0(py).unwrap()
+            )))},
+        }
+    }
+
+    pub fn zip(&self, other: RsOption) -> RsOption {
+        match (self.value.clone(), other.value) {
+            (Some(a), Some(b)) => RsOption::new(Some(
+                Python::with_gil(|py| (a, b).to_object(py))
+            )),
+            _ => RsOption::new(None),
         }
     }
 }

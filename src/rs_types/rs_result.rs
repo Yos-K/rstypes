@@ -1,7 +1,8 @@
-use pyo3::{prelude::*, types::PyBool};
+use pyo3::prelude::*;
 
 #[pyclass(name="Result")]
-#[derive(Debug)]
-pub struct RsResult {
-    pub value: Result<PyObject, PyObject>
+#[derive(Debug, FromPyObject)]
+pub enum RsResult {
+    Ok {value: PyObject},
+    Err {value: PyObject}
 }
