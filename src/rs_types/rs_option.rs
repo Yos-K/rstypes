@@ -8,7 +8,7 @@ use super::rs_result::RsResult;
 #[pyclass(name="Option")]
 #[derive(Debug, FromPyObject)]
 pub struct RsOption {
-    value: Option<PyObject>
+    pub value: Option<PyObject>
 }
 
 #[pymethods]
@@ -16,6 +16,11 @@ impl RsOption {
     #[new]
     pub fn new(n: Option<PyObject>) -> Self {
         Self { value: n }
+    }
+
+    #[getter]
+    fn value(&self) -> PyResult<Option<PyObject>> {
+        Ok(self.value.clone())
     }
 
     pub const fn is_some(&self) -> bool {
@@ -131,7 +136,7 @@ impl RsOption {
     }
 
     pub fn zip(&self, other: RsOption) -> RsOption {
-        match (self.value.clone(), other.value) {
+        match (self.value().unwrap(), other.value().unwrap()) {
             (Some(a), Some(b)) => RsOption::new(Some(
                 Python::with_gil(|py| (a, b).to_object(py))
             )),
