@@ -23,6 +23,17 @@ impl RsOption {
         Ok(self.value.clone())
     }
 
+    fn __str__(&self) -> String {
+        let s = Python::with_gil(|py| {
+            self.value().unwrap().to_object(py).to_string()
+        });
+        if &s != "None" {
+            format!("Some({})", &s)
+        } else {
+            s
+        }
+    }
+
     pub const fn is_some(&self) -> bool {
         self.value.is_some()
     }
