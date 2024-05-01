@@ -133,4 +133,66 @@ impl RsResult {
             },
         }
     }
+
+    pub fn expect(&self, msg: &str) -> PyObject {
+        match self {
+            RsResult::Ok { value } => value.clone(),
+            RsResult::Err { value } => panic!("{msg}: {value:?}"),
+        }
+    }
+
+    pub fn unwrap(&self) -> PyObject {
+        match self {
+            RsResult::Ok { value } => value.clone(),
+            RsResult::Err { value } => panic!("{}: {value:?}", "called `Result::unwrap()` on an `Err` value"),
+        }
+    }
+
+    pub fn expect_err(&self, msg: &str) -> PyObject {
+        match self {
+            RsResult::Ok { value } => panic!("{msg}: {value:?}"),
+            RsResult::Err { value } => value.clone(),
+        }
+    }
+
+    pub fn unwrap_err(&self) -> PyObject {
+        match self {
+            RsResult::Ok { value } => panic!("{}: {value:?}", "called `Result::unwrap()` on an `Err` value"),
+            RsResult::Err { value } => value.clone(),
+        }
+    }
+
+    pub fn and_then(&self, op: PyObject) -> RsResult {
+        match self {
+            RsResult::Ok { value } => {
+                RsResult::Ok { value: Python::with_gil(|py| op.call1(py, (value,)).unwrap())}
+            },
+            RsResult::Err { value } => RsResult::Err { value: value.clone() },
+        }
+    }
+
+    pub fn or_else(&self, op: PyObject) -> RsResult {
+        match self {
+            RsResult::Ok { value } => RsResult::Ok { value: value.clone() },
+            RsResult::Err { value } => {
+                RsResult::Err { value: Python::with_gil(|py| op.call1(py, (value,)).unwrap())}
+            },
+        }
+    }
+
+    pub fn unwrap_or(&self, default: PyObject) -> PyObject {
+        match self {
+            RsResult::Ok { value } => value.clone(),
+            RsResult::Err { value: _ } => default,
+        }
+    }
+
+    pub fn unwrap_or_else(&self, op: PyObject) -> PyObject {
+        match self {
+            RsResult::Ok { value } => value.clone(),
+            RsResult::Err { value } => Python::with_gil(|py| {
+                op.call1(py, (value,)).unwrap()
+            }),
+        }
+    }
 }
