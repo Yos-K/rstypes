@@ -1,4 +1,5 @@
 from typing import Callable
+
 from rstypes.option import Option
 from rstypes.result import Result
 
@@ -12,7 +13,7 @@ e = a.zip(d)
 f = Option(a)
 g = Result.Ok(1)
 h = g.is_ok()
-i = Result.Err(2)
+i = Result.Err("1")
 j = i.is_ok()
 k = g.map(func)
 l = i.map(func)
