@@ -113,4 +113,24 @@ impl RsResult {
             },
         }
     }
+
+    pub fn inspect(&self, f: PyObject) -> Self {
+        match self {
+            RsResult::Ok { value } => {
+                Python::with_gil(|py| f.call1(py, (value,))).unwrap();
+                RsResult::Ok { value: value.clone() }
+            },
+            RsResult::Err { value } => RsResult::Err { value: value.clone() },
+        }
+    }
+
+    pub fn inspect_err(&self, f: PyObject) -> Self {
+        match self {
+            RsResult::Ok { value } => RsResult::Err { value: value.clone() },
+            RsResult::Err { value } => {
+                Python::with_gil(|py| f.call1(py, (value,))).unwrap();
+                RsResult::Ok { value: value.clone() }
+            },
+        }
+    }
 }

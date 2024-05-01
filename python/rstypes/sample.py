@@ -1,5 +1,6 @@
 from typing import Callable
-from rstypes import Option, Result
+from option import Option
+from result import Result
 
 
 func: Callable[[int], int] = lambda x: x + 1
