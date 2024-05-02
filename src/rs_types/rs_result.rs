@@ -1,6 +1,7 @@
+use std::any::{Any, TypeId};
+
 use pyo3::{
-    prelude::*,
-    types::PyBool
+    conversion::FromPyObjectBound, prelude::*, types::PyBool
 };
 
 use super::rs_option::RsOption;
@@ -193,6 +194,37 @@ impl RsResult {
             RsResult::Err { value } => Python::with_gil(|py| {
                 op.call1(py, (value,)).unwrap()
             }),
+        }
+    }
+
+    pub fn transpose(&self) -> RsOption {
+        match self {
+            RsResult::Ok { value } => {
+                Python::with_gil(|py| {
+                    match value.extract::<RsOption>(py) {
+                        Ok(v) => match v.value {
+                            Some(m) => RsOption::new(Some(RsResult::Ok { value: m }.into_py(py))),
+                            None => RsOption::new(None),
+                        },
+                        Err(e) => panic!("transpose method requires type: Result[Option[T]] ({e})"),
+                    }
+                })
+            },
+            RsResult::Err { value } => RsOption::new(Some(Python::with_gil(|py| RsResult::Err { value: value.clone() }.into_py(py)))),
+        }
+    }
+
+    pub fn flatten(&self) -> RsResult {
+        match self {
+            RsResult::Ok { value } => {
+                Python::with_gil(|py| {
+                    match value.extract::<RsResult>(py){
+                        Ok(v) => v,
+                        Err(e) => panic!("flatten method requires type: Result[Result[T]] ({e})"),
+                    }
+                })
+            },
+            RsResult::Err { value } => RsResult::Err { value: value.clone() },
         }
     }
 }

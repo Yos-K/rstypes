@@ -19,7 +19,7 @@ impl RsOption {
     }
 
     #[getter]
-    fn value(&self) -> PyResult<Option<PyObject>> {
+    pub fn value(&self) -> PyResult<Option<PyObject>> {
         Ok(self.value.clone())
     }
 
@@ -152,6 +152,37 @@ impl RsOption {
                 Python::with_gil(|py| (a, b).to_object(py))
             )),
             _ => RsOption::new(None),
+        }
+    }
+
+    pub fn transpose(&self) -> RsResult {
+        match &self.value {
+            Some(value) => {
+                Python::with_gil(|py| {
+                    match value.extract::<RsResult>(py) {
+                        Ok(v) => match v {
+                            RsResult::Ok { value } => RsResult::Ok { value: RsOption::new(Some(value)).into_py(py) },
+                            RsResult::Err { value } => RsResult::Err { value: value.clone() },
+                        },
+                        Err(e) => panic!("transpose method requires type: Option[Result[T]] ({e})"),
+                    }
+                })
+            },
+            None => Python::with_gil(|py| {RsResult::Ok { value: RsOption::new(None).into_py(py) }}),
+        }
+    }
+
+    pub fn flatten(&self) -> RsOption {
+        match &self.value {
+            Some(value) => {
+                Python::with_gil(|py| {
+                    match value.extract::<RsOption>(py){
+                        Ok(v) => v,
+                        Err(e) => panic!("flatten method requires type: Option[Option[T]] ({e})"),
+                    }
+                })
+            },
+            None => RsOption::new(None),
         }
     }
 }
